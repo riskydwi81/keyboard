@@ -1,10 +1,13 @@
-name: Build iOS Style Blur Keyboard
+name: Build BlurGlass Keyboard APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+    paths:
+      - 'BlurGlassKeyboard-Final.zip'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,24 +23,52 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract keyboard project
+      - name: Extract Android project
         run: |
-          mkdir buildsrc
-          unzip -q "CleanBlurKeyboard_iOS_Glass.zip" -d buildsrc
-          echo "=== Project files ==="
-          find buildsrc -maxdepth 3 -type f | sort
+          rm -rf project
+          mkdir project
+          unzip -q "BlurGlassKeyboard-Final.zip" -d project
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '8.10'
+          echo "=== Isi ZIP ==="
+          find project -maxdepth 4 -type f | head -100
+
+      - name: Find Android project
+        run: |
+          SETTINGS=$(find project -name "settings.gradle.kts" -o -name "settings.gradle" | head -1)
+
+          if [ -z "$SETTINGS" ]; then
+            echo "ERROR: settings.gradle tidak ditemukan!"
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS")
+
+          echo "Android project ditemukan:"
+          echo "$PROJECT_DIR"
+
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build APK
-        working-directory: buildsrc
-        run: gradle :app:assembleDebug
+        run: |
+          cd "$PROJECT_DIR"
+
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleDebug --stacktrace
+          else
+            echo "gradlew tidak ditemukan, menggunakan Gradle bawaan runner."
+            gradle assembleDebug --stacktrace
+          fi
+
+      - name: Find APK
+        run: |
+          echo "=== APK yang berhasil dibuat ==="
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BlurKeyboard-iOS-Glass-APK
-          path: buildsrc/app/build/outputs/apk/debug/*.apk
+          name: BlurGlassKeyboard-APK
+          path: |
+            ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
