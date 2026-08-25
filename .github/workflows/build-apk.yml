@@ -23,7 +23,13 @@ jobs:
       - name: Extract project
         run: |
           unzip -o BlurKeyboard.zip
-          ls -la BlurKeyboard
+          echo "Project extracted:"
+          find BlurKeyboard -maxdepth 3 -type f | head -50
+
+      - name: Fix MainActivity
+        run: |
+          sed -i 's/^        text = getString(R.string.open_ime_settings)/        this.text = getString(R.string.open_ime_settings)/' BlurKeyboard/app/src/main/java/com/example/blurkeyboard/MainActivity.kt
+          sed -i 's/^        text = getString(R.string.switch_keyboard)/        this.text = getString(R.string.switch_keyboard)/' BlurKeyboard/app/src/main/java/com/example/blurkeyboard/MainActivity.kt
 
       - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v6
