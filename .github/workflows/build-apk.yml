@@ -1,4 +1,4 @@
-name: Build BlurKeyboard APK
+name: Build iOS Style Blur Keyboard
 
 on:
   workflow_dispatch:
@@ -20,33 +20,24 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract project
+      - name: Extract keyboard project
         run: |
-          unzip -o BlurKeyboard.zip
-          echo "Project extracted:"
-          find BlurKeyboard -maxdepth 3 -type f | head -50
-          
-      - name: Fix MainActivity
-        run: |
-          FILE="BlurKeyboard/app/src/main/java/com/example/blurkeyboard/MainActivity.kt"
+          mkdir buildsrc
+          unzip -q "CleanBlurKeyboard_iOS_Glass.zip" -d buildsrc
+          echo "=== Project files ==="
+          find buildsrc -maxdepth 3 -type f | sort
 
-          sed -i 's/text = getString(R.string.open_ime_settings)/this.text = getString(R.string.open_ime_settings)/g' "$FILE"
-          sed -i 's/text = getString(R.string.switch_keyboard)/this.text = getString(R.string.switch_keyboard)/g' "$FILE"
-
-          echo "=== MainActivity after fix ==="
-          sed -n '25,50p' "$FILE"
-
-      - name: Setup Gradle 8.7
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '8.7'
+          gradle-version: '8.10'
 
       - name: Build APK
-        working-directory: BlurKeyboard
-        run: gradle assembleDebug
+        working-directory: buildsrc
+        run: gradle :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BlurKeyboard-APK
-          path: BlurKeyboard/app/build/outputs/apk/debug/*.apk
+          name: BlurKeyboard-iOS-Glass-APK
+          path: buildsrc/app/build/outputs/apk/debug/*.apk
